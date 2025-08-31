@@ -2,8 +2,6 @@
 {
     public class Student : Human
     {
-        public string StudentId { get; set; } = string.Empty;
-
         public required DateTime DayOfBirth { get; set; }
 
         public int? AddressId { get; set; }

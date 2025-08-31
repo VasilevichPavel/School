@@ -11,14 +11,29 @@ using School.Infrastructure.Contexts;
 namespace School.Infrastructure.Migrations
 {
     [DbContext(typeof(SqlDbContext))]
-    [Migration("20250831143612_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250831194917_UpdateClasses")]
+    partial class UpdateClasses
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.8");
+
+            modelBuilder.Entity("ClassStudent", b =>
+                {
+                    b.Property<int>("ClassId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ClassId", "StudentId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("ClassStudent");
+                });
 
             modelBuilder.Entity("School.Entity.Models.Address", b =>
                 {
@@ -41,6 +56,26 @@ namespace School.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Addresses");
+                });
+
+            modelBuilder.Entity("School.Entity.Models.Class", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("Classes");
                 });
 
             modelBuilder.Entity("School.Entity.Models.People.Human", b =>
@@ -76,14 +111,7 @@ namespace School.Infrastructure.Migrations
                     b.Property<DateTime>("DayOfBirth")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("StudentId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.HasIndex("AddressId");
-
-                    b.HasIndex("StudentId")
-                        .IsUnique();
 
                     b.ToTable("Students");
                 });
@@ -95,12 +123,38 @@ namespace School.Infrastructure.Migrations
                     b.ToTable("Teachers");
                 });
 
+            modelBuilder.Entity("ClassStudent", b =>
+                {
+                    b.HasOne("School.Entity.Models.Class", null)
+                        .WithMany()
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("School.Entity.Models.People.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("School.Entity.Models.Class", b =>
+                {
+                    b.HasOne("School.Entity.Models.People.Teacher", "Teacher")
+                        .WithMany("Classes")
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Teacher");
+                });
+
             modelBuilder.Entity("School.Entity.Models.People.Student", b =>
                 {
                     b.HasOne("School.Entity.Models.Address", "Address")
                         .WithMany()
                         .HasForeignKey("AddressId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("School.Entity.Models.People.Human", null)
                         .WithOne()
@@ -118,6 +172,11 @@ namespace School.Infrastructure.Migrations
                         .HasForeignKey("School.Entity.Models.People.Teacher", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("School.Entity.Models.People.Teacher", b =>
+                {
+                    b.Navigation("Classes");
                 });
 #pragma warning restore 612, 618
         }

@@ -9,7 +9,7 @@ namespace School.Infrastructure.Contexts
 
         IQueryable<Teacher> Teachers { get; }
 
-        IQueryable<Entity.Models.Class> Classes { get; }
+        IQueryable<Class> Classes { get; }
 
         IQueryable<Address> Addresses { get; }
     }

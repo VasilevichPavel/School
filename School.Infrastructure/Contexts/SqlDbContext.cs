@@ -53,9 +53,6 @@ namespace School.Infrastructure.Contexts
 
             modelBuilder.Entity<Student>(entity =>
             {
-                entity.HasIndex(e => e.StudentId)
-                    .IsUnique();
-
                 entity.HasOne(e => e.Address)
                     .WithMany()
                     .HasForeignKey(e => e.AddressId)
@@ -80,7 +77,26 @@ namespace School.Infrastructure.Contexts
 
             modelBuilder.Entity<Class>(entity =>
             {
-                entity.HasNoKey();
+                entity.HasKey(x => x.Id);
+
+                entity.HasMany(x => x.Students)
+                    .WithMany(x => x.Classes)
+                    .UsingEntity<Dictionary<string, object>>(
+                        "ClassStudent",
+                        j => j
+                            .HasOne<Student>()
+                            .WithMany()
+                            .HasForeignKey("StudentId")
+                            .OnDelete(DeleteBehavior.Cascade),
+                        j => j
+                            .HasOne<Class>()
+                            .WithMany()
+                            .HasForeignKey("ClassId")
+                            .OnDelete(DeleteBehavior.Cascade),
+                        j =>
+                        {
+                            j.HasKey("ClassId", "StudentId");
+                        });
             });
         }
     }

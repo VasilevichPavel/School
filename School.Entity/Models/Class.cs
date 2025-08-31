@@ -6,9 +6,11 @@ namespace School.Entity.Models
     {
         public int Id { get; set; }
 
-        public int TeacherId { get; set; }
+        public required string Name { get; set; } = null!;
 
-        public required Teacher Teacher { get; set; }
+        public required int TeacherId { get; set; }
+
+        public Teacher Teacher { get; set; } = null!;
 
         public List<Student> Students { get; set; } = null!;
     }

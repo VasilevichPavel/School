@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using School.Core.Exceptions;
-using School.Entity.Models;
 using School.Entity.Models.People;
 using School.Infrastructure.Contexts;
+using School.Web.Dto;
 
 namespace School.Web.Endpoints
 {
@@ -16,95 +17,92 @@ namespace School.Web.Endpoints
 
             endpoints.MapGet("/", GetStudents);
             endpoints.MapGet("/{id:int}", GetStudent);
-            endpoints.MapGet("/student-id{studentId}", GetStudentByStudentId);
             endpoints.MapDelete("/{id:int}", DeleteStudent);
             endpoints.MapPut("/", UpdateStudent);
             endpoints.MapPost("/", CreateStudent);
         }
 
-        private static async Task<List<Student>> GetStudents(
+        private static async Task<List<GetStudentDto>> GetStudents(
             [FromServices] ISqlDbContextQuery context,
+            [FromServices] IMapper mapper,
             CancellationToken cancellationToken)
         {
-            return await context.Students
+            var students = await context.Students
                 .Include(x => x.Address)
                 .ToListAsync(cancellationToken);
+
+            return mapper.Map<List<GetStudentDto>>(students);
         }
 
-        private static async Task<Student?> GetStudent(
+        private static async Task<GetStudentDto?> GetStudent(
             int id,
             [FromServices] ISqlDbContextQuery context,
+            [FromServices] IMapper mapper,
             CancellationToken cancellationToken)
         {
-            return await context.Students
+            var student = await context.Students
                 .Include(x => x.Address)
                 .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
                 ?? throw new NotFoundEntityException(typeof(Student).Name, id);
+
+            return mapper.Map<GetStudentDto>(student);
         }
 
-        private static async Task<Student?> GetStudentByStudentId(
-            [FromQuery]string studentId,
-            [FromServices] ISqlDbContextQuery context,
-            CancellationToken cancellationToken)
-        {
-            return await context.Students.FirstOrDefaultAsync(x => x.StudentId == studentId, cancellationToken)
-                ?? throw new NotFoundEntityException(typeof(Student).Name, studentId);
-        }
-
-        private static async Task<bool> DeleteStudent(
+        private static async Task DeleteStudent(
             int id,
             [FromServices] ISqlDbContext context,
+            [FromServices] IMapper mapper,
             CancellationToken cancellationToken)
         {
-            var student = await context.Students.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            var student = await context.Students
+                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
                 ?? throw new NotFoundEntityException(typeof(Student).Name, id);
 
             context.Students.Remove(student);
-            var result = await context.SaveChangesAsync(cancellationToken);
-            return result > 0;
+            await context.SaveChangesAsync(cancellationToken);
         }
 
-        private static async Task<bool> UpdateStudent(
-            [FromBody] Student student,
+        private static async Task UpdateStudent(
+            [FromBody] UpdateStudentDto studentDto,
             [FromServices] ISqlDbContext context,
+            [FromServices] IMapper mapper,
             CancellationToken cancellationToken)
         {
-            var oldStudent = await context.Students
+            var student = await context.Students
                 .Include(x => x.Address)
-                .FirstOrDefaultAsync(x => x.Id == student.Id, cancellationToken)
-                ?? throw new NotFoundEntityException(typeof(Student).Name, student.Id);
+                .FirstOrDefaultAsync(x => x.Id == studentDto.Id, cancellationToken)
+                ?? throw new NotFoundEntityException(typeof(Student).Name, studentDto.Id);
 
-            oldStudent.FirstName = student.FirstName;
-            oldStudent.LastName = student.LastName;
-            oldStudent.DayOfBirth = student.DayOfBirth;
-            oldStudent.StudentId = student.StudentId;
+            student.FirstName = student.FirstName;
+            student.LastName = student.LastName;
+            student.DayOfBirth = student.DayOfBirth;
 
             if (student.Address != null)
             {
-                if (oldStudent.Address == null)
+                if (student.Address == null)
                 {
-                    oldStudent.Address = student.Address;
+                    student.Address = student.Address;
                 }
                 else
                 {
-                    oldStudent.Address.Street = student.Address.Street;
-                    oldStudent.Address.City = student.Address.City;
-                    oldStudent.Address.PostalCode = student.Address.PostalCode;
+                    student.Address.Street = student.Address.Street;
+                    student.Address.City = student.Address.City;
+                    student.Address.PostalCode = student.Address.PostalCode;
                 }
             }
 
-            var result = await context.SaveChangesAsync(cancellationToken);
-            return result > 0;
+            await context.SaveChangesAsync(cancellationToken);
         }
 
-        private static async Task<bool> CreateStudent(
-            [FromBody] Student student,
+        private static async Task CreateStudent(
+            [FromBody] CreateStudentDto studentDto,
             [FromServices] ISqlDbContext context,
+            [FromServices] IMapper mapper,
             CancellationToken cancellationToken)
         {
+            var student = mapper.Map<Student>(studentDto);
             await context.Students.AddAsync(student, cancellationToken);
-            var result = await context.SaveChangesAsync(cancellationToken);
-            return result > 0;
+            await context.SaveChangesAsync(cancellationToken);
         }
     }
 }

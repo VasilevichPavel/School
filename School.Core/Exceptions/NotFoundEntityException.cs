@@ -5,5 +5,7 @@
         public NotFoundEntityException(string type, string id) : base($"{type} with id: {id} not found") { }
 
         public NotFoundEntityException(string type, int id) : base($"{type} with id: {id} not found") { }
+
+        public NotFoundEntityException(string type, IEnumerable<int> ids) : base($"{type} with ids: {string.Join(", ", ids)} not found") { }
     }
 }

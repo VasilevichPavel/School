@@ -46,7 +46,6 @@ namespace School.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    StudentId = table.Column<string>(type: "TEXT", nullable: false),
                     DayOfBirth = table.Column<DateTime>(type: "TEXT", nullable: false),
                     AddressId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
@@ -58,7 +57,7 @@ namespace School.Infrastructure.Migrations
                         column: x => x.AddressId,
                         principalTable: "Addresses",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Students_Human_Id",
                         column: x => x.Id,
@@ -85,21 +84,74 @@ namespace School.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Classes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    TeacherId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Classes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Classes_Teachers_TeacherId",
+                        column: x => x.TeacherId,
+                        principalTable: "Teachers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ClassStudent",
+                columns: table => new
+                {
+                    ClassId = table.Column<int>(type: "INTEGER", nullable: false),
+                    StudentId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClassStudent", x => new { x.ClassId, x.StudentId });
+                    table.ForeignKey(
+                        name: "FK_ClassStudent_Classes_ClassId",
+                        column: x => x.ClassId,
+                        principalTable: "Classes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ClassStudent_Students_StudentId",
+                        column: x => x.StudentId,
+                        principalTable: "Students",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Classes_TeacherId",
+                table: "Classes",
+                column: "TeacherId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClassStudent_StudentId",
+                table: "ClassStudent",
+                column: "StudentId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_Students_AddressId",
                 table: "Students",
                 column: "AddressId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Students_StudentId",
-                table: "Students",
-                column: "StudentId",
-                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "ClassStudent");
+
+            migrationBuilder.DropTable(
+                name: "Classes");
+
             migrationBuilder.DropTable(
                 name: "Students");
 
