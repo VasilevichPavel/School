@@ -1,3 +1,3 @@
-You need to use a sqlite database file 'School.Database/school.db'
+You need to use the SQLite database file 'School.Database/school.db'
 Configure the connection string
-Use swagger for the API
+Use Swagger for the API
