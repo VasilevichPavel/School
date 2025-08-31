@@ -21,9 +21,6 @@ namespace School.Application.Middlewares
             try
             {
                 await _next(context);
-
-                var response = new { Success = "True" };
-                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
             }
             catch (Exception ex)
             {

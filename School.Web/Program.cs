@@ -3,6 +3,7 @@ using School.Core.Configurations;
 var builder = WebApplication.CreateBuilder(args);
 
 AppDomain.CurrentDomain.Load("School.Infrastructure");
+AppDomain.CurrentDomain.Load("School.Application");
 
 var modules = AppDomain.CurrentDomain.GetAssemblies()
     .SelectMany(a => a.GetTypes())
