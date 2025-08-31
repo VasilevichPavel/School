@@ -1,3 +1,3 @@
-You need to create a sqlite database file (e.g., school.db)
+You need to use a sqlite database file 'School.Database/school.db'
 Configure the connection string
 Use swagger for the API
