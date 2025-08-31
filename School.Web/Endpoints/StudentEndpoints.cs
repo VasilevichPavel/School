@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using School.Core.Exceptions;
+using School.Entity.Models;
 using School.Entity.Models.People;
 using School.Infrastructure.Contexts;
 
@@ -13,6 +16,7 @@ namespace School.Web.Endpoints
 
             endpoints.MapGet("/", GetStudents);
             endpoints.MapGet("/{id:int}", GetStudent);
+            endpoints.MapGet("/student-id{studentId}", GetStudentByStudentId);
             endpoints.MapDelete("/{id:int}", DeleteStudent);
             endpoints.MapPut("/", UpdateStudent);
             endpoints.MapPost("/", CreateStudent);
@@ -22,15 +26,29 @@ namespace School.Web.Endpoints
             [FromServices] ISqlDbContextQuery context,
             CancellationToken cancellationToken)
         {
-            return await context.Students.ToListAsync(cancellationToken);
+            return await context.Students
+                .Include(x => x.Address)
+                .ToListAsync(cancellationToken);
         }
 
-        private static async Task<Student> GetStudent(
+        private static async Task<Student?> GetStudent(
             int id,
             [FromServices] ISqlDbContextQuery context,
             CancellationToken cancellationToken)
         {
-            return await context.Students.FirstAsync(x => x.Id == id, cancellationToken);
+            return await context.Students
+                .Include(x => x.Address)
+                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+                ?? throw new NotFoundEntityException(typeof(Student).Name, id);
+        }
+
+        private static async Task<Student?> GetStudentByStudentId(
+            [FromQuery]string studentId,
+            [FromServices] ISqlDbContextQuery context,
+            CancellationToken cancellationToken)
+        {
+            return await context.Students.FirstOrDefaultAsync(x => x.StudentId == studentId, cancellationToken)
+                ?? throw new NotFoundEntityException(typeof(Student).Name, studentId);
         }
 
         private static async Task<bool> DeleteStudent(
@@ -38,16 +56,12 @@ namespace School.Web.Endpoints
             [FromServices] ISqlDbContext context,
             CancellationToken cancellationToken)
         {
-            var student = await context.Students.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            var student = await context.Students.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+                ?? throw new NotFoundEntityException(typeof(Student).Name, id);
 
-            if (student is not null)
-            {
-                context.Students.Remove(student);
-                var result = await context.SaveChangesAsync(cancellationToken);
-                return result > 0;
-            }
-
-            return false;
+            context.Students.Remove(student);
+            var result = await context.SaveChangesAsync(cancellationToken);
+            return result > 0;
         }
 
         private static async Task<bool> UpdateStudent(
@@ -55,21 +69,32 @@ namespace School.Web.Endpoints
             [FromServices] ISqlDbContext context,
             CancellationToken cancellationToken)
         {
-            var oldStudent = await context.Students.FirstOrDefaultAsync(x => x.Id == student.Id, cancellationToken);
+            var oldStudent = await context.Students
+                .Include(x => x.Address)
+                .FirstOrDefaultAsync(x => x.Id == student.Id, cancellationToken)
+                ?? throw new NotFoundEntityException(typeof(Student).Name, student.Id);
 
-            if (oldStudent is not null)
+            oldStudent.FirstName = student.FirstName;
+            oldStudent.LastName = student.LastName;
+            oldStudent.DayOfBirth = student.DayOfBirth;
+            oldStudent.StudentId = student.StudentId;
+
+            if (student.Address != null)
             {
-                oldStudent.FirstName = student.FirstName;
-                oldStudent.LastName = student.LastName;
-                oldStudent.DayOfBirth = student.DayOfBirth;
-                oldStudent.Address = student.Address;
-                oldStudent.StudentId = student.StudentId;
-
-                var result = await context.SaveChangesAsync(cancellationToken);
-                return result > 0;
+                if (oldStudent.Address == null)
+                {
+                    oldStudent.Address = student.Address;
+                }
+                else
+                {
+                    oldStudent.Address.Street = student.Address.Street;
+                    oldStudent.Address.City = student.Address.City;
+                    oldStudent.Address.PostalCode = student.Address.PostalCode;
+                }
             }
 
-            return false;
+            var result = await context.SaveChangesAsync(cancellationToken);
+            return result > 0;
         }
 
         private static async Task<bool> CreateStudent(

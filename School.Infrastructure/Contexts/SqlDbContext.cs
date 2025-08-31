@@ -1,21 +1,29 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using School.Entity.Models;
 using School.Entity.Models.People;
 
 namespace School.Infrastructure.Contexts
 {
-    internal class SqlDbContext(DbContextOptions<SqlDbContext> options)
-        : DbContext(options),
+    internal class SqlDbContext
+        : DbContext,
         ISqlDbContext,
         ISqlDbContextQuery
     {
-        public DbSet<Student> Students { get; set; }
+        public SqlDbContext(DbContextOptions<SqlDbContext> options) : base(options)
+        {
+            Database = base.Database;
+        }
 
-        public DbSet<Teacher> Teachers { get; set; }
+        public DbSet<Student> Students { get; set; } = null!;
 
-        public DbSet<Class> Classes { get; set; }
+        public DbSet<Teacher> Teachers { get; set; } = null!;
 
-        public DbSet<Address> Addresses { get; set; }
+        public DbSet<Class> Classes { get; set; } = null!;
+
+        public DbSet<Address> Addresses { get; set; } = null!;
+
+        public override DatabaseFacade Database { get; }
 
         IQueryable<Student> ISqlDbContextQuery.Students => Students.AsNoTracking();
 
@@ -30,9 +38,9 @@ namespace School.Infrastructure.Contexts
             modelBuilder.Entity<Human>()
                 .UseTptMappingStrategy();
 
-            modelBuilder.Entity<Student>(entity =>
+            modelBuilder.Entity<Human>(entity =>
             {
-                entity.HasKey(e => e.Id);
+                entity.HasKey(h => h.Id);
 
                 entity.Property(e => e.FirstName)
                     .IsRequired()
@@ -41,28 +49,20 @@ namespace School.Infrastructure.Contexts
                 entity.Property(e => e.LastName)
                     .IsRequired()
                     .HasMaxLength(100);
+            });
 
+            modelBuilder.Entity<Student>(entity =>
+            {
                 entity.HasIndex(e => e.StudentId)
                     .IsUnique();
 
                 entity.HasOne(e => e.Address)
                     .WithMany()
                     .HasForeignKey(e => e.AddressId)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<Teacher>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-
-                entity.Property(e => e.FirstName)
-                    .IsRequired()
-                    .HasMaxLength(100);
-
-                entity.Property(e => e.LastName)
-                    .IsRequired()
-                    .HasMaxLength(100);
-            });
+            modelBuilder.Entity<Teacher>();
 
             modelBuilder.Entity<Address>(entity =>
             {
@@ -76,6 +76,11 @@ namespace School.Infrastructure.Contexts
 
                 entity.Property(a => a.PostalCode)
                     .IsRequired();
+            });
+
+            modelBuilder.Entity<Class>(entity =>
+            {
+                entity.HasNoKey();
             });
         }
     }

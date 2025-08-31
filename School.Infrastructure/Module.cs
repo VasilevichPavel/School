@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using School.Core.Configurations;
@@ -10,15 +11,28 @@ namespace School.Infrastructure
     {
         public void Load(IServiceCollection services, IConfiguration configuration)
         {
-            services.AddDbContext<ISqlDbContext, SqlDbContext>(options =>
+            var connectionString = configuration.GetConnectionString("SqlConnectionString");
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
-                options.UseSqlite(configuration.GetConnectionString("ConnectionString"));
+                throw new InvalidOperationException("Database connection string is missing!");
+            }
+
+            services.AddDbContext<SqlDbContext>(options =>
+            {
+                options.UseSqlite(connectionString);
             });
 
-            services.AddDbContext<ISqlDbContextQuery, SqlDbContext>(options =>
-            {
-                options.UseSqlite(configuration.GetConnectionString("ConnectionString"));
-            });
+            services.AddScoped<ISqlDbContext>(sp => sp.GetRequiredService<SqlDbContext>());
+            services.AddScoped<ISqlDbContextQuery>(sp => sp.GetRequiredService<SqlDbContext>());
+
+            SQLitePCL.Batteries.Init();
+        }
+
+        public async Task LoadAsync(IApplicationBuilder builder)
+        {
+            using var scope = builder.ApplicationServices.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ISqlDbContext>();
+            await db.Database.EnsureCreatedAsync();
         }
     }
 }

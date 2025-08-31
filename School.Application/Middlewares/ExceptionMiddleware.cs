@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using School.Core.Exceptions;
 using System.Text.Json;
 
 namespace School.Application.Middlewares
@@ -18,7 +19,14 @@ namespace School.Application.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An unhandled exception has occurred.");
+                if (ex is NotFoundEntityException)
+                {
+                    _logger.LogError(ex, ex.Message);
+                }
+                else
+                {
+                    _logger.LogError(ex, "An unhandled exception has occurred.");
+                }
 
                 context.Response.StatusCode = 500;
                 context.Response.ContentType = "application/json";

@@ -1,7 +1,4 @@
-using School.Application.Middlewares;
 using School.Core.Configurations;
-using School.Web.Components;
-using School.Web.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,30 +15,11 @@ foreach (var module in modules)
     module.Load(builder.Services, builder.Configuration);
 }
 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
 var app = builder.Build();
 
-app.MapStudentEndpoints();
-
-app.UseMiddleware<ExceptionMiddleware>();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+foreach (var module in modules)
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    await module.LoadAsync(app);
 }
-
-app.UseHttpsRedirection();
-
-app.UseStaticFiles();
-app.UseAntiforgery();
-
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
 
 app.Run();
